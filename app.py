@@ -52,16 +52,39 @@ def generate_url(path: str) -> str:
 
 
 @app.route("/", defaults={"path": ""})
-@app.route("/<path:path>", methods=["GET", "POST"])
+
+#Initial version will not account for POST requests
+#@app.route("/<path:path>", methods=["GET", "POST"])
+
+@app.route("/<path:path>", methods=["GET"])
+
 def proxy(path):
     logger.info(f"{request.method} {request.path}")
 
     if request.method == "GET":
-        response = r.get(f"{generate_url(path)}")
-        return response.content
-    elif request.method == "POST":
-        response = r.post(f"{generate_url(path)}", json=request.get_json())
-        return response.content
+        try:
+            api_response = client.get_package_version_asset(
+                    domain=codeartifact_domain,
+                    domainOwner=codeartifact_account_id,
+                    repository=codeartifact_repository,
+                    format='generic',
+                    namespace=request.args.get('namespace'),
+                    package=request.args.get('package'),
+                    packageVersion=request.args.get('version'),
+                    asset=request.args.get('asset')
+                    )
+            file_binary = api_response['asset'].read()
+            response = make_response(file_binary)
+            response.headers.set('Content-Type', 'application/octet-stream')
+            response.headers.set('Content-Disposition': 'inline; filename='+request.args.get('asset'))
+            return response
+        except Exception as e:
+            logger.info('Error getting asset {} from repository {}.'.format(request.args.get('asset'), codeartifact_repository))
+
+#Initial version will not account for POST requests
+#    elif request.method == "POST":
+#        response = r.post(f"{generate_url(path)}", json=request.get_json())
+#        return response.content
 
 
 if __name__ == "__main__":

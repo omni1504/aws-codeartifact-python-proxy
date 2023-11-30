@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+
+  # Create an ECS task execution role
+  TaskExecutionRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: [ecs-tasks.amazonaws.com]
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+
+  # Create an ECS cluster 
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties: {}
+
+  # Create a task definition
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties: 
+      Family: my-task
+      ExecutionRoleArn: !Ref TaskExecutionRole
+      ContainerDefinitions: 
+        - Name: my-app
+          Image: myimage:latest
+          Memory: 500 
+          PortMappings: 
+            - ContainerPort: 80
+              HostPort: 80
+          Essential: true
+
+  # Create a ECS service to run the task
+  Service:
+    Type: AWS::ECS::Service 
+    Properties:
+      Cluster: !Ref Cluster 
+      Deployments:
+        MaximumPercent: 200
+        MinimumHealthy
