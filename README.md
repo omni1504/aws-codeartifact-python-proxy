@@ -1,6 +1,6 @@
 # AWS CodeArtifact Python Proxy
 
-Proxies requests to AWS CodeArtifact Python for anonymous access
+Proxies requests to AWS CodeArtifact Python with HTTP Basic authentication and parametrized URL to download artifact directly 
 
 ![ci](https://github.com/Polymathian/aws-codeartifact-python-proxy/workflows/ci/badge.svg)
 
@@ -23,13 +23,6 @@ The container exposes on port 5000, you can then use this container in your pip 
 To run using docker-compose, do:
 
 ```
-$ git clone git@github.com:Polymathian/aws-codeartifact-python-proxy.git
-$ cd aws-codeartifact-python-proxy
 $ docker-compose up --build
 ```
 
-To install packages using the proxy, use:
-
-```
-$ pip install -i https://<your-host-name-here> <package-name>
-```

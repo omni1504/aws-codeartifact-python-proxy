@@ -1,7 +1,8 @@
 import logging
+from logging.config import dictConfig
 import os
 
-from flask import Flask, request
+from flask import Flask, request, make_response
 from flask_basicauth import BasicAuth
 from apscheduler.schedulers.background import BackgroundScheduler
 import requests as r
@@ -18,6 +19,22 @@ auth_incoming = os.getenv("PROXY_AUTH")
 # Logging
 logging.basicConfig()
 logger = logging.Logger(__name__)
+# For debugging - making sure logs are printed on the console for off-the-container runs
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 
 # Make flask
 app = Flask(__name__)
@@ -36,13 +53,13 @@ AUTH_TOKEN: str
 
 def update_auth_token():
     global AUTH_TOKEN
+    app.logger.info("Attempting to get a new token")
     AUTH_TOKEN = client.get_authorization_token(
         domain=codeartifact_domain,
         domainOwner=codeartifact_account_id,
         durationSeconds=43200,
     )["authorizationToken"]
-    logger.info("Got new token")
-    logger.debug("New token: " + AUTH_TOKEN)
+    app.logger.info("Got new token")
 
 
 def generate_url(path: str) -> str:
@@ -59,7 +76,7 @@ def generate_url(path: str) -> str:
 @app.route("/<path:path>", methods=["GET"])
 
 def proxy(path):
-    logger.info(f"{request.method} {request.path}")
+    app.logger.info(f"{request.method} {request.path}")
 
     if request.method == "GET":
         try:
@@ -76,10 +93,12 @@ def proxy(path):
             file_binary = api_response['asset'].read()
             response = make_response(file_binary)
             response.headers.set('Content-Type', 'application/octet-stream')
-            response.headers.set('Content-Disposition': 'inline; filename='+request.args.get('asset'))
+            response.headers['Content-Disposition'] = 'inline, filename='+request.args.get('asset')
+            app.logger.debug(response)
             return response
         except Exception as e:
-            logger.info('Error getting asset {} from repository {}.'.format(request.args.get('asset'), codeartifact_repository))
+            app.logger.info('Error getting asset {} from repository {}.'.format(request.args.get('asset'), codeartifact_repository))
+            #app.logger.info(e)
 
 #Initial version will not account for POST requests
 #    elif request.method == "POST":
@@ -94,4 +113,6 @@ if __name__ == "__main__":
     job = scheduler.add_job(update_auth_token, "interval", seconds=21600)
     scheduler.start()
 
+    # Used for debugging
+    #app.run(host='0.0.0.0', port=5000, debug=True)
     app.run(host='0.0.0.0', port=5000)
