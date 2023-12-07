@@ -110,7 +110,8 @@ def proxy(path):
             return response
         except Exception as e:
             app.logger.info('Error getting asset {} from repository {}.'.format(request.args.get('asset'), codeartifact_repository))
-            app.logger.info(e)
+            # Enable to debug exceptions (these will end up in Cloudwatch logs)
+            #app.logger.info(e)
 
 #Initial version will not account for POST requests
 #    elif request.method == "POST":

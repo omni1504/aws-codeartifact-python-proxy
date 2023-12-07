@@ -2,7 +2,7 @@
 
 Proxies requests to AWS CodeArtifact Python with HTTP Basic authentication and parametrized URL to download artifact directly 
 
-![ci](https://github.com/Polymathian/aws-codeartifact-python-proxy/workflows/ci/badge.svg)
+
 
 ## Preparation if you use CFN templates
 
