@@ -12,7 +12,7 @@ See attached Draw.IO diagram which describes what Cloudformation template deploy
 
 ## Usage
 
-1. Create a Docker container container, prepare  the following env vars
+1. Create a Docker container container, prepare  the following env vars (create .env file in the root of the project)
 
 | Env Var                   | Value                                                                                     |
 | ------------------------- | ----------------------------------------------------------------------------------------- |
