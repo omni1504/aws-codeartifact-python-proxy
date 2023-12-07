@@ -1,6 +1,6 @@
 import logging
 from logging.config import dictConfig
-import os
+import os, time
 
 from flask import Flask, request, make_response
 from flask_basicauth import BasicAuth
@@ -9,11 +9,12 @@ import requests as r
 import boto3
 
 
+
 # Pull config
-codeartifact_region = os.environ["CODEARTIFACT_REGION"]
-codeartifact_account_id = os.environ["CODEARTIFACT_ACCOUNT_ID"]
-codeartifact_domain = os.environ["CODEARTIFACT_DOMAIN"]
-codeartifact_repository = os.environ["CODEARTIFACT_REPOSITORY"]
+codeartifact_region = os.getenv("CODE_ARTIFACT_REGION")
+codeartifact_account_id = os.getenv("CODE_ARTIFACT_ACCOUNT_ID")
+codeartifact_domain = os.getenv("CODE_ARTIFACT_DOMAIN")
+codeartifact_repository = os.getenv("CODE_ARTIFACT_REPOSITORY")
 auth_incoming = os.getenv("PROXY_AUTH")
 
 # Logging
@@ -38,12 +39,17 @@ dictConfig({
 
 # Make flask
 app = Flask(__name__)
+
+
+
 if auth_incoming:
     username, password = auth_incoming.split(":")
     app.config['BASIC_AUTH_USERNAME'] = username
     app.config['BASIC_AUTH_PASSWORD'] = password
-    app.config['BASIC_AUTH_FORCE'] = True
-    basic_auth = BasicAuth(app)
+    #app.config['BASIC_AUTH_FORCE'] = True
+
+#Enabling authentication
+basic_auth = BasicAuth(app)
 
 
 # Token management
@@ -68,13 +74,19 @@ def generate_url(path: str) -> str:
     return f"https://aws:{AUTH_TOKEN}@{codeartifact_domain}-{codeartifact_account_id}.d.codeartifact.{codeartifact_region}.amazonaws.com/pypi/{codeartifact_repository}/simple/{path}"
 
 
-@app.route("/", defaults={"path": ""})
 
+@app.route('/healthcheck')
+def healthcheck():
+    return 'Healthcheck Page'
+
+
+
+@app.route("/", defaults={"path": ""})
 #Initial version will not account for POST requests
 #@app.route("/<path:path>", methods=["GET", "POST"])
 
 @app.route("/<path:path>", methods=["GET"])
-
+@basic_auth.required
 def proxy(path):
     app.logger.info(f"{request.method} {request.path}")
 
@@ -98,7 +110,7 @@ def proxy(path):
             return response
         except Exception as e:
             app.logger.info('Error getting asset {} from repository {}.'.format(request.args.get('asset'), codeartifact_repository))
-            #app.logger.info(e)
+            app.logger.info(e)
 
 #Initial version will not account for POST requests
 #    elif request.method == "POST":

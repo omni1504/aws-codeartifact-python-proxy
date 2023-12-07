@@ -1,25 +1,117 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-Description: Creates ECR repo, ECS cluster, task, IAM roles, ALB
+Description: Creates ECS cluster, task, IAM roles, ALB. Imports Repo name.
 
 Parameters:
   VpcId:
     Description: Choose which VPC this ECS cluster should be deployed to
     Type: AWS::EC2::VPC::Id
 
+  CodeArtifactRegion:
+    Description: Code Artifact Repository Region
+    Default: us-west-2
+    Type: String
+
+  CodeArtifactAccountID:
+    Description: Code Artifact Account ID
+    Default: 167106685025
+    Type: String
+  
+  CodeArtifactDomain:
+    Description: Code Artifact Domain
+    Default: sample-domain-amirasf
+    Type: String
+
+  CodeArtifactRepository:
+    Description: Code Artifact Repository
+    Default: sample-amirasf
+    Type: String
+  
+  # If you want to incorporate creation of SecureString from CFN, refer to https://rnanthan.medium.com/creating-secure-string-in-aws-system-manager-parameter-store-via-aws-cloudformation-f3ab62d9d4c3
+  # Assumption is that this parameter uses a default KMS key, otherwise update Task Execution policy
+  ProxyAuthCredentialsSSMParameter:
+    Description: HTTP Auth Credentials - SSM Parameter Store ARN for Secret String
+    Default: arn:aws:ssm:us-west-2:167106685025:parameter/codeartifactproxy/proxyauth
+    Type: String
+
+  ECRRepo:
+    Description: ECR Repo name created by the previous template
+    Default: 167106685025.dkr.ecr.us-west-2.amazonaws.com/codeartifactproxyrepo
+    Type: String
+
+  AppName:
+    Description: Application Name - used in ECS Task Container Definition
+    Default: myECSApp
+    Type: String
+  
+  KMSKeyARN:
+    Description: KMS Key ARN used to encrypt Proxy auth password
+    Default: "arn:aws:kms:us-west-2:167106685025:key/dbfef521-74ed-45d2-96ca-215696b3f78e"
+    Type: String
+
 
 Resources:
 
-  ECRRepo:
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: codeartifactproxyrepo
+# Creating parameters in Parameter Store to then be used as container ENV variables
+
+  CodeArtifactRegionSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: '/codeartifactproxy/codeartifactregion'
+      Type: String
+      Value: !Ref CodeArtifactRegion
+
+  CodeArtifactAccountIDSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: '/codeartifactproxy/codeartifactaccountID'
+      Type: String
+      Value: !Ref CodeArtifactAccountID
+
+  CodeArtifactDomainSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: '/codeartifactproxy/codeartifactdomain'
+      Type: String
+      Value: !Ref CodeArtifactDomain
+
+  CodeArtifactRepositorySSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: '/codeartifactproxy/codeartifactrepository'
+      Type: String
+      Value: !Ref CodeArtifactRepository
 
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: CodeArtifactProxyCluster
   
+  ECSSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      CidrBlock: 10.0.3.0/24
+      
+  ECSSubnet2:  
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      AvailabilityZone: !Select [ 1, !GetAZs ]
+      CidrBlock: 10.0.4.0/24
+
+  ECSSecurityGroup: 
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !GetAtt ALBSecurityGroup.GroupId
+          IpProtocol: tcp
+          FromPort: 5000
+          ToPort: 5000
+
   ECSService: 
     Type: AWS::ECS::Service
     DependsOn: ALBListener
@@ -27,9 +119,17 @@ Resources:
       Cluster: !Ref ECSCluster
       DesiredCount: 1
       LaunchType: FARGATE
+      TaskDefinition: !Ref ECSTaskDef
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+          Subnets:
+            - !Ref ECSSubnet1
+            - !Ref ECSSubnet2
       LoadBalancers:
-        - ContainerName: "mycontainer"
-          ContainerPort: 80
+        - ContainerName: !Ref AppName
+          ContainerPort: 5000
           TargetGroupArn: !Ref ALBTargetGroup
 
   ECSServiceRole:
@@ -39,8 +139,36 @@ Resources:
         Statement:
         - Effect: Allow
           Principal:
-            Service: [ecs.amazonaws.com]
+            Service: [ecs-tasks.amazonaws.com]
           Action: ['sts:AssumeRole']
+      Policies:
+        - PolicyName: CodeArtifactProxyECSTaskPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement: 
+            - Effect: Allow
+              Action:
+                - codeartifact:GetAuthorizationToken
+              Resource:
+                - !Sub "arn:aws:codeartifact:${AWS::Region}:${AWS::AccountId}:domain/${CodeArtifactDomain}"
+              - Effect: Allow
+              Action:
+                - sts:GetServiceBearerToken
+              Resource: *
+              Condition: 
+                StringEquals:
+                  sts:AWSServiceName: "codeartifact.amazonaws.com"
+            - Effect: Allow
+              Action:
+                - codeartifact:Describe*
+                - codeartifact:Get*
+                - codeartifact:List*
+                - codeartifact:ReadFromRepository
+              Resource:
+                - !Sub "arn:aws:codeartifact:*:*:repository/*/${CodeArtifactRepository}"
+                - !Sub "arn:aws:codeartifact:${AWS::Region}:${AWS::AccountId}:package/${CodeArtifactDomain}/*"
+                - !Sub "arn:aws:codeartifact:${AWS::Region}:${AWS::AccountId}:domain/${CodeArtifactDomain}"
+                
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole        
@@ -54,21 +182,55 @@ Resources:
           Principal:
             Service: [ecs-tasks.amazonaws.com]
           Action: ['sts:AssumeRole']
+      Policies:
+        - PolicyName: CodeArtifactProxyECSTaskExecutionPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement: 
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - ssm:GetParameters
+                - kms:Decrypt
+              Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/codeartifactproxy/*"
+                - !Ref KMSKeyARN
       Path: /
       ManagedPolicyArns: 
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-
+      
   ECSTaskDef:
     Type: AWS::ECS::TaskDefinition
     Properties:
       ContainerDefinitions:
-      - Name: CodeArtifactProxyApp
+      - Name: !Ref AppName
         Image: !Ref ECRRepo
         Essential: true
+        PortMappings: 
+        - ContainerPort: 5000
+          Protocol: tcp
+        Secrets:
+          - Name: "PROXY_AUTH"
+            ValueFrom: !Ref ProxyAuthCredentialsSSMParameter
+          - Name: "CODE_ARTIFACT_REGION"
+            ValueFrom: !Ref CodeArtifactRegionSSMParameter
+          - Name: "CODE_ARTIFACT_DOMAIN"
+            ValueFrom: !Ref CodeArtifactDomainSSMParameter
+          - Name: "CODE_ARTIFACT_REPOSITORY"
+            ValueFrom: !Ref CodeArtifactRepositorySSMParameter
+          - Name: "CODE_ARTIFACT_ACCOUNT_ID"
+            ValueFrom: !Ref CodeArtifactAccountIDSSMParameter
       ExecutionRoleArn: !Ref ECSTaskExecutionRole
       TaskRoleArn: !Ref ECSServiceRole
       Family: CodeArtifactProxyApp
       NetworkMode: awsvpc
+      Cpu: 256
+      Memory: 512
+
       RequiresCompatibilities:
         - FARGATE
 
@@ -126,6 +288,7 @@ Resources:
       Protocol: HTTP
       TargetType: ip
       VpcId: !Ref VpcId
+      HealthCheckPath: /healthcheck
   
   ALBListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -138,3 +301,4 @@ Resources:
         Values: [/]
       ListenerArn: !Ref ALBListener
       Priority: 1
+

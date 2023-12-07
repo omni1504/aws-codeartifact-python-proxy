@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Creates ECR repo and exports the value, also creates S3 bucket to store .env file
+
+
+Resources:
+
+  ECRRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: codeartifactproxyrepo
