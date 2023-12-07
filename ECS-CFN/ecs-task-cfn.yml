@@ -14,29 +14,24 @@ Parameters:
 
   CodeArtifactAccountID:
     Description: Code Artifact Account ID
-    Default: 167106685025
     Type: String
   
   CodeArtifactDomain:
     Description: Code Artifact Domain
-    Default: sample-domain-amirasf
     Type: String
 
   CodeArtifactRepository:
     Description: Code Artifact Repository
-    Default: sample-amirasf
     Type: String
   
   # If you want to incorporate creation of SecureString from CFN, refer to https://rnanthan.medium.com/creating-secure-string-in-aws-system-manager-parameter-store-via-aws-cloudformation-f3ab62d9d4c3
   # Assumption is that this parameter uses a default KMS key, otherwise update Task Execution policy
   ProxyAuthCredentialsSSMParameter:
     Description: HTTP Auth Credentials - SSM Parameter Store ARN for Secret String
-    Default: arn:aws:ssm:us-west-2:167106685025:parameter/codeartifactproxy/proxyauth
     Type: String
 
   ECRRepo:
     Description: ECR Repo name created by the previous template
-    Default: 167106685025.dkr.ecr.us-west-2.amazonaws.com/codeartifactproxyrepo
     Type: String
 
   AppName:
@@ -46,7 +41,6 @@ Parameters:
   
   KMSKeyARN:
     Description: KMS Key ARN used to encrypt Proxy auth password
-    Default: "arn:aws:kms:us-west-2:167106685025:key/dbfef521-74ed-45d2-96ca-215696b3f78e"
     Type: String
 
 
