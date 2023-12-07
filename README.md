@@ -2,7 +2,7 @@
 
 Proxies requests to AWS CodeArtifact Python with HTTP Basic authentication and parametrized URL to download artifact directly 
 
-
+See attached Draw.IO diagram which describes what Cloudformation template deploy.
 
 ## Preparation if you use CFN templates
 
