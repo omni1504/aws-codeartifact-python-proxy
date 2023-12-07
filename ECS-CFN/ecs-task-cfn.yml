@@ -151,10 +151,10 @@ Resources:
                 - codeartifact:GetAuthorizationToken
               Resource:
                 - !Sub "arn:aws:codeartifact:${AWS::Region}:${AWS::AccountId}:domain/${CodeArtifactDomain}"
-              - Effect: Allow
+            - Effect: Allow
               Action:
                 - sts:GetServiceBearerToken
-              Resource: *
+              Resource: "*"
               Condition: 
                 StringEquals:
                   sts:AWSServiceName: "codeartifact.amazonaws.com"
