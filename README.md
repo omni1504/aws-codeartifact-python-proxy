@@ -7,6 +7,7 @@ Project consists of 2 parts:
 - Containerized Flask application which accepts parametrized GET request, authenticates it and then makes an API call to a configured CodeArtifact repository to retrieve asset and then "proxy" it back to the requestor.
 - Cloudformation templates which deploy ECS Cluster running this container with associated resources (ECR repository, ALB and associated subnets and Security Groups, SSM Parameter Store secrets). 
 See attached Draw.IO diagram which describes what Cloudformation template deploy.
+Sample pricing for AWS setup (PLEASE ADJUST NUMBERS BASED ON YOUR REQUIREMENTS) - https://calculator.aws/#/estimate?id=70a111e8b63b99a9f219aa7347d54d497ad5af15
 
 ## Preparation if you use CFN templates
 
@@ -16,7 +17,8 @@ See attached Draw.IO diagram which describes what Cloudformation template deploy
 
 ## Usage
 
-1. Create a Docker container container, prepare  the following env vars (create .env file in the root of the project)
+1. Create a Docker container.
+2. If not using ECS to run container but using  the docker-compose provided here, prepare the following env vars (create .env file in the root of the project)
 
 | Env Var                   | Value                                                                                     |
 | ------------------------- | ----------------------------------------------------------------------------------------- |
@@ -26,21 +28,23 @@ See attached Draw.IO diagram which describes what Cloudformation template deploy
 | `CODE_ARTIFACT_REPOSITORY` | AWS CodeArtifact repository name<br>e.g. `pypi-store`                                     |
 | `PROXY_AUTH`              | Optional<br>HTTP Basic auth credentials expected by the proxy<br>e.g. `username:password` |
 
-2. You may also pass in AWS credential environment variables or make credentials available some other way. If using the docker-compose provided here, you can use the `.env` template to do this.
-CFN template uses SSM Parameter Store values which it is then passing to ECS task as environment variables.
+Cloudformation template uses SSM Parameter Store to securely store values which it is then passing to ECS task as environment variables.
 
-The container exposes on port 5000, you can then use this container to pull packages from CodeArtifact.
+3. The container exposes on port 5000, you can then use this container to pull packages from CodeArtifact.
 
-To run using docker-compose, do:
+4a. [Not using ECS] To run using docker-compose, do:
 
 ```
 $ docker-compose up --build
 ```
+Once application runs, make GET request to the service as described below
 
-3. If using CFN template, procedure is the following:
+4b. If using Cloudformation template, procedure is the following:
 - Run ecr-repo.yml to create ECR repository for container
 - Build and then push container to ECR;
 - Create SSM Parameter Store SecureString for HTTP Auth Credentials (see above)
 - Deploy ecs-task-cfn.yml file which will deploy ECS cluster, task, ALB and associated subnets, Security Groups and IAM roles.
 
-4. Sample pricing (PLEASE ADJUST NUMBERS BASED ON YOUR REQUIREMENTS) - https://calculator.aws/#/estimate?id=70a111e8b63b99a9f219aa7347d54d497ad5af15
+5. Once Flask application is running, construct URL to retrieve asset from CodeArtifact, for example:
+wget --user=<username> --password=<password> 'http://<container IP and port or AWS ALB DNS Name>?namespace=my-ns&package=my-package&version=1.0.0&asset=unicorn.png'
+
