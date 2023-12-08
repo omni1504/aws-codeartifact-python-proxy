@@ -46,5 +46,6 @@ Once application runs, make GET request to the service as described below
 - Deploy ecs-task-cfn.yml file which will deploy ECS cluster, task, ALB and associated subnets, Security Groups and IAM roles.
 
 5. Once Flask application is running, construct URL to retrieve asset from CodeArtifact, for example:
+```
 wget --user=<username> --password=<password> 'http://<container IP and port or AWS ALB DNS Name>?namespace=my-ns&package=my-package&version=1.0.0&asset=unicorn.png'
-
+```
