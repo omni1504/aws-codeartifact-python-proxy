@@ -1,6 +1,7 @@
 # AWS CodeArtifact Python Proxy
 
 Proxies requests to AWS CodeArtifact Python with HTTP Basic authentication and parametrized URL to download artifact directly ("generic package").
+
 Use-case: source systems which cannot use any of the supported package managers and need a direct URL with HTTP Basic Authentication to download package.
 
 Project consists of 2 parts:
