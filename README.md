@@ -6,7 +6,9 @@ Use-case: source systems which cannot use any of the supported package managers 
 Project consists of 2 parts:
 - Containerized Flask application which accepts parametrized GET request, authenticates it and then makes an API call to a configured CodeArtifact repository to retrieve asset and then "proxy" it back to the requestor.
 - Cloudformation templates which deploy ECS Cluster running this container with associated resources (ECR repository, ALB and associated subnets and Security Groups, SSM Parameter Store secrets). 
+
 See attached Draw.IO diagram which describes what Cloudformation template deploy.
+
 Sample pricing for AWS setup (PLEASE ADJUST NUMBERS BASED ON YOUR REQUIREMENTS) - https://calculator.aws/#/estimate?id=70a111e8b63b99a9f219aa7347d54d497ad5af15
 
 ## Preparation if you use CFN templates
