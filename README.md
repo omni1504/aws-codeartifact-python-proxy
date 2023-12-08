@@ -35,14 +35,14 @@ Cloudformation template uses SSM Parameter Store to securely store values which 
 
 3. The container exposes on port 5000, you can then use this container to pull packages from CodeArtifact.
 
-4a. [Not using ECS] To run using docker-compose, do:
+4a. [Not deploying on Amazon ECS, using locally] To run using docker-compose, do:
 
 ```
 $ docker-compose up --build
 ```
 Once application runs, make GET request to the service as described below
 
-4b. If using Cloudformation template, procedure is the following:
+4b. [IaC-based Amazon ECS Deployment] If using Cloudformation template, procedure is the following:
 - Run ecr-repo.yml to create ECR repository for container
 - Build and then push container to ECR;
 - Create SSM Parameter Store SecureString for HTTP Auth Credentials (see above)
