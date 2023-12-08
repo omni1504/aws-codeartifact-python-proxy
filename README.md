@@ -12,7 +12,7 @@ See attached Draw.IO diagram which describes what Cloudformation template deploy
 
 Sample pricing for AWS setup (PLEASE ADJUST NUMBERS BASED ON YOUR REQUIREMENTS) - https://calculator.aws/#/estimate?id=70a111e8b63b99a9f219aa7347d54d497ad5af15
 
-## Preparation if you use CFN templates
+## Pre-Requisites if Using Cloudformation Templates
 
 - In the target AWS account, Create SSM Parameter Store SecureString for HTTP Auth Credentials. Parameter value format: username:password. Current CFN implementation supports only AWS-managed KMS key
 - VPC for ECS and ALB Should be available in the target account - CFN creates subnets in 10.0.0.0/8 - adapt or parametrize networking config accordingly.
