@@ -1,7 +1,11 @@
 # AWS CodeArtifact Python Proxy
 
-Proxies requests to AWS CodeArtifact Python with HTTP Basic authentication and parametrized URL to download artifact directly 
+Proxies requests to AWS CodeArtifact Python with HTTP Basic authentication and parametrized URL to download artifact directly ("generic package").
+Use-case: source systems which cannot use any of the supported package managers and need a direct URL with HTTP Basic Authentication to download package.
 
+Project consists of 2 parts:
+- Containerized Flask application which accepts parametrized GET request, authenticates it and then makes an API call to a configured CodeArtifact repository to retrieve asset and then "proxy" it back to the requestor.
+- Cloudformation templates which deploy ECS Cluster running this container with associated resources (ECR repository, ALB and associated subnets and Security Groups, SSM Parameter Store secrets). 
 See attached Draw.IO diagram which describes what Cloudformation template deploy.
 
 ## Preparation if you use CFN templates
