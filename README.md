@@ -46,7 +46,8 @@ Once application runs, make GET request to the service as described below
 - Run ecr-repo.yml to create ECR repository for container
 - Build and then push container to ECR;
 - Create SSM Parameter Store SecureString for HTTP Auth Credentials (see above)
-- Deploy ecs-task-cfn.yml file which will deploy ECS cluster, task, ALB and associated subnets, Security Groups and IAM roles.
+- Copy KMS Key ARN which was used to encrypt secure string and ARN of SecureString parameter - these will be used as input to ecs-task-cfn.yml
+- Deploy ecs-task-cfn.yml file which will deploy ECS cluster/service/task, internal ALB and associated subnets, Security Groups and IAM roles
 
 5. Once Flask application is running, construct URL to retrieve asset from CodeArtifact, for example:
 ```
